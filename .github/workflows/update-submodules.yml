@@ -1,0 +1,67 @@
+name: Update Submodules
+
+on:
+  schedule:
+    # Runs every hour (adjust as needed)
+    - cron: "0 * * * *"
+  workflow_dispatch: # Allows manual triggering
+
+permissions:
+  # Required to checkout the repo and push changes back
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Main Repository
+        uses: actions/checkout@v4
+        with:
+          # We need to fetch the submodules too, but not necessarily update them yet
+          submodules: "true"
+          # Fetch depth 0 is needed for accurate comparison later, though potentially slower
+          fetch-depth: 0
+          # Use a PAT or App token if your default GITHUB_TOKEN doesn't have push rights
+          # Or if you need to trigger other workflows on the push this action makes.
+          # token: ${{ secrets.YOUR_PAT_OR_APP_TOKEN }}
+
+      - name: Configure Git User
+        run: |
+          git config user.name "${{ github.actor }}" # Or a dedicated bot user name
+          git config user.email "${{ github.actor }}@users.noreply.github.com" # Or bot email
+
+      - name: Update Submodule References to Latest
+        run: |
+          echo "Updating submodules to track the latest commit on their default branch..."
+          # This command checks the remote 'origin' for the branch configured for each submodule
+          # (usually 'main' or 'master') and updates the main repo's index if the remote has moved.
+          git submodule update --remote --init --recursive
+
+          # Alternative if you want to specify branches explicitly (less common)
+          # git submodule update --remote --init --recursive multi-agents-api multi-agents-agent multi-agents-frontend
+
+      - name: Check for Changes
+        id: check_changes
+        run: |
+          # Check if 'git submodule update --remote' modified the index
+          if git diff --quiet --cached; then
+            echo "No submodule updates needed."
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "Submodule references updated. Changes detected."
+            git status # Optional: Show what changed
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and Push Changes
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          echo "Committing updated submodule references..."
+          # The commit message could be more dynamic if needed
+          git commit -am "chore(submodules): Update submodule references to latest commits"
+          echo "Pushing changes..."
+          git push origin HEAD:${{ github.ref_name }} # Push to the same branch the workflow ran on
+
+      - name: No Changes to Commit
+        if: steps.check_changes.outputs.changed == 'false'
+        run: echo "Submodules are already up-to-date with their remote branches."
