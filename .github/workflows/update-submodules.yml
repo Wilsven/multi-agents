@@ -88,10 +88,10 @@ jobs:
 
               COMMIT_MSG="chore(submodules): Update submodule references ($(date +'%Y-%m-%d'))"
               echo "$COMMIT_MSG"
-              # git commit -m "$COMMIT_MSG"
+              git commit -m "$COMMIT_MSG"
 
               echo "Pushing changes..."
-              # git push origin HEAD:${{ github.ref_name }} # Push to the same branch the workflow ran on
+              git push origin HEAD:${{ github.ref_name }} # Push to the same branch the workflow ran on
               echo "committed=true" >> $GITHUB_OUTPUT
           fi
 
