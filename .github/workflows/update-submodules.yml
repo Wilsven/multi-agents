@@ -43,52 +43,56 @@ jobs:
           # Get list of changed files/paths in the working tree compared to the index.
           # Updated submodules will appear here by their path.
           # Use '|| true' to prevent the command failing the step if there are no changes (git diff exits 1)
-          CHANGED_SUBMODULES=$(git diff --name-only || true)
+          CHANGED_PATHS=$(git diff --name-only || true)
 
-          if [ -z "$CHANGED_SUBMODULES" ]; then
+          echo "$CHANGED_PATHS"
+
+          if [ -z "$CHANGED_PATHS" ]; then
             # No changes detected by git diff
-            echo "No submodule updates needed (working tree is clean compared to index)."
+            echo "No working tree changes detected initially (working tree is clean compared to index)."
             echo "committed=false" >> $GITHUB_OUTPUT
-          else
-            # Changes were detected
-            echo "The following submodules appear to have been updated:"
-            echo "$CHANGED_SUBMODULES" # Print the list of changed paths
+          fi
 
-            # Ensure we ONLY stage the detected submodule paths.
-            # Filter CHANGED_SUBMODULES to only include expected submodule paths.
-            # This prevents staging accidental non-submodule files if any existed.
-            STAGED_SOMETHING=false
-            echo "$CHANGED_SUBMODULES" | while IFS= read -r path; do
+          # Changes were detected
+          echo "Working tree changes detected:"
+          echo "$CHANGED_PATHS" # Print the list of changed paths
+
+          # Ensure we ONLY stage the detected submodule paths.
+          # Filter CHANGED_PATHS to only include expected submodule paths.
+          # This prevents staging accidental non-submodule files if any existed.
+          STAGED_SOMETHING=false
+          echo "$CHANGED_PATHS" | while IFS= read -r path; do
               # Basic check: Does the path exist in .gitmodules? A more robust check might be needed
               # if you have deeply nested submodules or complex paths.
               # This grep is simple: it checks if the path appears literally in the .gitmodules file.
               if grep -q "path = ${path}$" .gitmodules; then
+                  STAGED_SOMETHING=true
                   echo "Staging updated submodule: $path"
                   git add "$path"
-                  STAGED_SOMETHING=true
               else
                   echo "Skipping non-submodule or unexpected path: $path"
               fi
-            done
+          done
 
-            if [ "$STAGED_SOMETHING" = false ]; then
-                echo "No actual submodule paths were staged."
-                echo "committed=false" >> $GITHUB_OUTPUT
-                exit 0 # Exit successfully, nothing to commit
-            fi
+          # Check if anything was ACTUALLY staged
+          # `git diff --cached --quiet` compares HEAD to the index (staging area).
+          # It exits 0 if NO differences (nothing staged), 1 if differences (something staged).
+          if git diff --cached --quiet; then
+              # If the exit code is 0, nothing is staged.
+              echo "No relevant submodule changes were staged."
+              echo "committed=false" >> $GITHUB_OUTPUT
+          else
+              # If the exit code is non-zero, something IS staged.
+              echo "Staged changes detected. Committing..."
+              git status --short # Show what's staged
 
-            # Optional: Show concise status after staging
-            git status --short
+              COMMIT_MSG="chore(submodules): Update submodule references ($(date +'%Y-%m-%d'))"
+              echo "$COMMIT_MSG"
+              # git commit -m "$COMMIT_MSG"
 
-            echo "Committing staged submodule updates..."
-            # You could potentially list the updated modules in the commit message
-            # updated_list=$(echo "$CHANGED_SUBMODULES" | paste -sd "," -) # Example: api,frontend
-            COMMIT_MSG="chore(submodules): Update submodule references ($(date +'%Y-%m-%d'))"
-            git commit -m "$COMMIT_MSG"
-
-            echo "Pushing changes..."
-            git push origin HEAD:${{ github.ref_name }} # Push to the same branch the workflow ran on
-            echo "committed=true" >> $GITHUB_OUTPUT
+              echo "Pushing changes..."
+              # git push origin HEAD:${{ github.ref_name }} # Push to the same branch the workflow ran on
+              echo "committed=true" >> $GITHUB_OUTPUT
           fi
 
       - name: No Changes to Commit
