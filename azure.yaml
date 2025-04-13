@@ -1,0 +1,36 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
+name: multi-agents
+metadata:
+  template: azd-init@1.14.0
+
+infra:
+  provider: bicep
+  path: ./infra
+
+services:
+  api:
+    name: api
+    # Points to where the api submodule will be checked out
+    project: ./src/api
+    language: python
+    host: appservice
+    module: api # Links to infra/modules/api.bicep
+
+  agent:
+    name: agent
+    # Points to where the agent submodule will be checked out
+    project: ./src/agent
+    language: python
+    host: appservice
+    module: agent # Links to infra/modules/agent.bicep
+
+  frontend:
+    name: frontend
+    # Points to where the frontend submodule will be checked out
+    project: ./src/frontend
+    language: javascript
+    host: staticwebapp
+    module: frontend # Links to infra/modules/frontend.bicep
+
+# No hooks needed for fetching code

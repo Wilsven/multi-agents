@@ -1,0 +1,9 @@
+[submodule "src/api"]
+	path = src/api
+	url = https://github.com/Wilsven/multi-agents-api.git
+[submodule "src/agent"]
+	path = src/agent
+	url = https://github.com/Wilsven/multi-agents-agent.git
+[submodule "src/frontend"]
+	path = src/frontend
+	url = https://github.com/Wilsven/multi-agents-frontend.git
