@@ -78,13 +78,9 @@ jobs:
           # `git diff --cached --quiet` compares HEAD to the index (staging area).
           # It exits 0 if NO differences (nothing staged), 1 if differences (something staged).
           if ! git diff --cached --quiet; then
-              # If the exit code is 0, nothing is staged.
-              echo "No relevant submodule changes were staged."
-              echo "committed=false" >> $GITHUB_OUTPUT
-          else
               # If the exit code is non-zero, something IS staged.
               echo "Staged changes detected. Committing..."
-              git status --short # Show what's staged
+              git status --short # Show what's staged again before commit
 
               COMMIT_MSG="chore(submodules): Update submodule references ($(date +'%Y-%m-%d'))"
               echo "$COMMIT_MSG"
@@ -93,6 +89,10 @@ jobs:
               echo "Pushing changes..."
               git push origin HEAD:${{ github.ref_name }} # Push to the same branch the workflow ran on
               echo "committed=true" >> $GITHUB_OUTPUT
+          else
+            # If exit code is 0 (no differences found), run this block.
+            echo "No relevant submodule changes were found in the staging area."
+            echo "committed=false" >> $GITHUB_OUTPUT # Set output to false
           fi
 
       - name: No Changes to Commit

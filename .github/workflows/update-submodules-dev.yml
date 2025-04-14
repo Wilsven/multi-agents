@@ -87,24 +87,13 @@ jobs:
               fi
           done
 
-          # ***** ADD DEBUGGING HERE *****
-          echo "DEBUG: Checking Git status after attempting staging:"
-          git status --short # Shows staged (M, A, etc. in first column) and unstaged changes
-          echo "DEBUG: Checking Git diff --cached --name-only:"
-          git diff --cached --name-only # Lists paths that are actually staged
-          echo "DEBUG: Finished checking status."
-          # ***** END DEBUGGING *****
-
           # Check if anything was ACTUALLY staged
           # `git diff --cached --quiet` compares HEAD to the index (staging area).
           # It exits 0 if NO differences (nothing staged), 1 if differences (something staged).
           if ! git diff --cached --quiet; then
-              echo "No relevant submodule changes were staged on ${{ matrix.branch }}."
-              echo "committed=false" >> $GITHUB_OUTPUT
-          else:
-              # If the exit code is non-zero, something IS staged.
+              # If exit code is NON-ZERO (differences found), run this block.
               echo "Staged changes detected on ${{ matrix.branch }}. Committing..."
-              git status --short # Show what's staged
+              git status --short # Show what's staged again before commit
 
               COMMIT_MSG="chore(submodules): Update submodule references on ${{ matrix.branch }} ($(date +'%Y-%m-%d'))"
               echo "$COMMIT_MSG"
@@ -113,6 +102,10 @@ jobs:
               echo "Pushing changes to origin/${{ matrix.branch }}..."
               git push origin HEAD:${{ matrix.branch }} # Push specifically back to the branch from the matrix
               echo "committed=true" >> $GITHUB_OUTPUT
+          else
+            # If exit code is 0 (no differences found), run this block.
+            echo "No relevant submodule changes were found in the staging area."
+            echo "committed=false" >> $GITHUB_OUTPUT # Set output to false
           fi
 
       - name: Final Status for (${{ matrix.branch }})
