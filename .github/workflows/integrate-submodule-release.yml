@@ -6,7 +6,7 @@ on:
   workflow_dispatch: # Keep manual trigger as backup/alternative
     inputs:
       submodule_path:
-        description: "Path to the submodule (e.g., multi-agents-api)"
+        description: "Path to the submodule (e.g., src/api)"
         required: true
       tag:
         description: "Tag to check out in the submodule (e.g., v1.2.0)"
@@ -17,6 +17,7 @@ permissions:
 
 jobs:
   integrate:
+    name: Integrate Submodule
     runs-on: ubuntu-latest
     steps:
       - name: Extract Payload Data (Repository Dispatch)
@@ -60,7 +61,7 @@ jobs:
 
       - name: Initialize and Update Specific Submodule to Tag
         run: |
-          SUBMODULE_PATH="src/${{ steps.vars.outputs.submodule_path }}"
+          SUBMODULE_PATH="${{ steps.vars.outputs.submodule_path }}"
           TAG="${{ steps.vars.outputs.tag }}"
 
           echo "Initializing submodules..."
@@ -79,15 +80,21 @@ jobs:
       - name: Check for Changes & Commit/Push
         id: commit_push
         run: |
-          SUBMODULE_PATH="src/${{ steps.vars.outputs.submodule_path }}"
+          SUBMODULE_PATH="${{ steps.vars.outputs.submodule_path }}"
           TAG="${{ steps.vars.outputs.tag }}"
-          if git diff --quiet --cached; then
-            echo "Submodule '$SUBMODULE_PATH' at tag '$TAG' caused no change or was already updated."
+          # Check if the specific submodule path was staged
+          if git diff --cached --quiet -- "$SUBMODULE_PATH"; then
+            # Exit code 0 means NO staged changes for this specific path
+            echo "Submodule '$SUBMODULE_PATH' at tag '$TAG' resulted in no change or was already updated."
             echo "committed=false" >> $GITHUB_OUTPUT
           else
+            # Exit code non-zero means the submodule path IS staged
             echo "Submodule '$SUBMODULE_PATH' reference updated to tag '$TAG'. Committing..."
-            COMMIT_MSG="feat(deps): Update $SUBMODULE_PATH submodule to tag $TAG"
+            git status --short # Show what's staged
+
+            COMMIT_MSG="feat(deps): Update $SUBMODULE_PATH submodule to tag $TAG" # Commit message clearly states the version tag
             git commit -m "$COMMIT_MSG"
+
             echo "Pushing changes..."
             git push origin HEAD:${{ github.ref_name }} # Push to the branch workflow ran on (usually main)
             echo "committed=true" >> $GITHUB_OUTPUT

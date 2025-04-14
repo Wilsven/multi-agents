@@ -1,0 +1,208 @@
+# .github/workflows/update-submodules.yml (in main repo)
+name: Update Submodules (Scheduled)
+
+on:
+  schedule:
+    # At 12:00 AM, only on Friday (adjust cron syntax and timing as needed)
+    - cron: "0 0 * * 5"
+  workflow_dispatch: # Allows manual triggering for specific branches if needed (see inputs later)
+    inputs:
+      branch:
+        description: "Specific branch to update (e.g., dev, staging). Leave empty for matrix."
+        required: false
+        default: ""
+
+permissions:
+  # Required to checkout the repo and push changes back
+  contents: write
+
+jobs:
+  update-non-main-branches:
+    name: Update Submodules (Non-Main Branches)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Define the non-main branches you want this workflow to target
+        branch: [dev] # [dev, staging]
+      fail-fast: false # Ensures if one branch fails, the others in the matrix still run
+
+    # Only run matrix jobs for scheduled triggers OR if workflow_dispatch has empty input
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.branch == '')
+
+    # Prevent multiple scheduled runs for the same branch from overlapping
+    concurrency:
+      group: ${{ github.workflow }}-${{ matrix.branch }}-schedule
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout Target Branch (${{ matrix.branch }})
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.branch }} # Checkout the specific branch from the matrix
+          submodules: "true" # Need .gitmodules file present
+          fetch-depth: 0 # Recommended for accurate submodule comparison
+          # token: ${{ secrets.PERSONAL_ACCESS_TOKEN }} # Use PAT if default token lacks permissions or need to trigger other actions
+
+      - name: Configure Git User
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions-bot@users.noreply.github.com"
+
+      - name: Update Submodule References to Latest Remote HEAD on Branch (${{ matrix.branch }})
+        run: |
+          echo "Updating submodules on branch ${{ matrix.branch }} to track latest commit on their default remote branch..."
+          # This updates the working tree and submodule checkout on the target branch
+          git submodule update --remote --init --recursive
+
+      - name: Check for Changes, Stage ONLY Updated Submodules, Commit, and Push to (${{ matrix.branch }})
+        id: commit_push
+        run: |
+          # Get list of changed paths in the working tree compared to the index.
+          CHANGED_PATHS=$(git diff --name-only || true)
+
+          if [ -z "$CHANGED_PATHS" ]; then
+              echo "No working tree changes detected on ${{ matrix.branch }}."
+              echo "committed=false" >> $GITHUB_OUTPUT
+              exit 0
+          fi
+
+          # Changes were detected
+          echo "Working tree changes detected on ${{ matrix.branch }}:"
+          echo "$CHANGED_PATHS" # Print the list of changed paths
+
+          # Ensure we ONLY stage the detected submodule paths.
+          # Filter CHANGED_PATHS to only include expected submodule paths.
+          # This prevents staging accidental non-submodule files if any existed.
+          STAGED_SOMETHING=true
+          echo "$CHANGED_PATHS" | while IFS= read -r path; do
+              # Basic check: Does the path exist in .gitmodules? A more robust check might be needed
+              # if you have deeply nested submodules or complex paths.
+              # This grep is simple: it checks if the path appears literally in the .gitmodules file.
+              if grep -q "path = ${path}$" .gitmodules; then
+                  STAGED_SOMETHING=true
+                  echo "Staging updated submodule on ${{ matrix.branch }}: $path"
+                  git add "$path"
+              else
+                  echo "Skipping non-submodule or unexpected path on ${{ matrix.branch }}: $path"
+              fi
+          done
+
+          # Check if anything was ACTUALLY staged
+          # `git diff --cached --quiet` compares HEAD to the index (staging area).
+          # It exits 0 if NO differences (nothing staged), 1 if differences (something staged).
+          if git diff --cached --quiet; then
+              echo "No relevant submodule changes were staged on ${{ matrix.branch }}."
+              echo "committed=false" >> $GITHUB_OUTPUT
+          else:
+              # If the exit code is non-zero, something IS staged.
+              echo "Staged changes detected on ${{ matrix.branch }}. Committing..."
+              git status --short # Show what's staged
+
+              COMMIT_MSG="chore(submodules): Update submodule references on ${{ matrix.branch }} ($(date +'%Y-%m-%d'))"
+              echo "$COMMIT_MSG"
+              git commit -m "$COMMIT_MSG"
+
+              echo "Pushing changes to origin/${{ matrix.branch }}..."
+              git push origin HEAD:${{ matrix.branch }} # Push specifically back to the branch from the matrix
+              echo "committed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Final Status for (${{ matrix.branch }})
+        run: |
+          if [ "${{ steps.commit_push.outputs.committed }}" = "true" ]; then
+            echo "Workflow finished for branch ${{ matrix.branch }}. Submodule changes were committed and pushed."
+          else
+            echo "Workflow finished for branch ${{ matrix.branch }}. No relevant submodule changes were committed."
+          fi
+
+  # Add a separate job for manual dispatch targeting a specific branch
+  update-manual-dispatch-branch:
+    runs-on: ubuntu-latest
+    # Only run this job for workflow_dispatch AND if a specific branch was provided
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.branch != ''
+
+    # Prevent multiple manual runs for the same branch from overlapping
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.event.inputs.branch }}-manual
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout Target Branch (${{ github.event.inputs.branch }})
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }} # Checkout the specific branch from the matrix
+          submodules: "true" # Need .gitmodules file present
+          fetch-depth: 0 # Recommended for accurate submodule comparison
+          # token: ${{ secrets.PERSONAL_ACCESS_TOKEN }} # Use PAT if default token lacks permissions or need to trigger other actions
+
+      - name: Configure Git User
+        run: |
+          git config user.name "GitHub Actions Bot (Manual Trigger)"
+          git config user.email "actions-bot@users.noreply.github.com"
+
+      - name: Update Submodule References to Latest Remote HEAD on Branch (${{ github.event.inputs.branch }})
+        run: |
+          echo "Updating submodules on branch ${{ github.event.inputs.branch }} to track latest commit on their default remote branch..."
+          # This updates the working tree and submodule checkout on the target branch
+          git submodule update --remote --init --recursive
+
+      - name: Check for Changes, Stage ONLY Updated Submodules, Commit, and Push to (${{ github.event.inputs.branch }})
+        id: commit_push
+        run: |
+          # Get list of changed paths in the working tree compared to the index.
+          CHANGED_PATHS=$(git diff --name-only || true)
+
+          if [ -z "$CHANGED_PATHS" ]; then
+              echo "No working tree changes detected on ${{ github.event.inputs.branch }}."
+              echo "committed=false" >> $GITHUB_OUTPUT
+              exit 0
+          fi
+
+          # Changes were detected
+          echo "Working tree changes detected on ${{ github.event.inputs.branch }}:"
+          echo "$CHANGED_PATHS" # Print the list of changed paths
+
+          # Ensure we ONLY stage the detected submodule paths.
+          # Filter CHANGED_PATHS to only include expected submodule paths.
+          # This prevents staging accidental non-submodule files if any existed.
+          STAGED_SOMETHING=true
+          echo "$CHANGED_PATHS" | while IFS= read -r path; do
+              # Basic check: Does the path exist in .gitmodules? A more robust check might be needed
+              # if you have deeply nested submodules or complex paths.
+              # This grep is simple: it checks if the path appears literally in the .gitmodules file.
+              if grep -q "path = ${path}$" .gitmodules; then
+                  STAGED_SOMETHING=true
+                  echo "Staging updated submodule on ${{ github.event.inputs.branch }}: $path"
+                  git add "$path"
+              else
+                  echo "Skipping non-submodule or unexpected path on ${{ github.event.inputs.branch }}: $path"
+              fi
+          done
+
+          # Check if anything was ACTUALLY staged
+          # `git diff --cached --quiet` compares HEAD to the index (staging area).
+          # It exits 0 if NO differences (nothing staged), 1 if differences (something staged).
+          if git diff --cached --quiet; then
+              echo "No relevant submodule changes were staged on ${{ github.event.inputs.branch }}."
+              echo "committed=false" >> $GITHUB_OUTPUT
+          else:
+              # If the exit code is non-zero, something IS staged.
+              echo "Staged changes detected on ${{ github.event.inputs.branch }}. Committing..."
+              git status --short # Show what's staged
+
+              COMMIT_MSG="chore(submodules): Update submodule references on ${{ github.event.inputs.branch }} ($(date +'%Y-%m-%d'))"
+              echo "$COMMIT_MSG"
+              git commit -m "$COMMIT_MSG"
+
+              echo "Pushing changes to origin/${{ github.event.inputs.branch }}..."
+              git push origin HEAD:${{ github.event.inputs.branch }} # Push specifically back to the branch from the matrix
+              echo "committed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Final Status for (${{ github.event.inputs.branch }})
+        run: |
+          if [ "${{ steps.commit_push.outputs.committed }}" = "true" ]; then
+            echo "Workflow finished for branch ${{ github.event.inputs.branch }}. Submodule changes were committed and pushed."
+          else
+            echo "Workflow finished for branch ${{ github.event.inputs.branch }}. No relevant submodule changes were committed."
+          fi

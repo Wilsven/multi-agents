@@ -1,9 +1,9 @@
 # .github/workflows/update-submodules.yml (in main repo)
-name: Update Submodules
+name: Update Submodules (Scheduled)
 
 on:
   schedule:
-    # At 12:00 AM, only on Friday
+    # At 12:00 AM, only on Friday (adjust cron syntax and timing as needed)
     - cron: "0 0 * * 5"
   workflow_dispatch: # Allows manual triggering
 
@@ -46,8 +46,6 @@ jobs:
           # Updated submodules will appear here by their path.
           # Use '|| true' to prevent the command failing the step if there are no changes (git diff exits 1)
           CHANGED_PATHS=$(git diff --name-only || true)
-
-          echo "$CHANGED_PATHS"
 
           if [ -z "$CHANGED_PATHS" ]; then
             # No changes detected by git diff
@@ -100,3 +98,11 @@ jobs:
       - name: No Changes to Commit
         if: steps.commit_push.outputs.changed == 'false'
         run: echo "Submodules are already up-to-date with their remote branches."
+
+      - name: Final Status
+        run: |
+          if [ "${{ steps.commit_push.outputs.committed }}" = "true" ]; then
+            echo "Workflow finished. Submodule changes were committed and pushed."
+          else
+            echo "Workflow finished. No relevant submodule changes were committed."
+          fi
