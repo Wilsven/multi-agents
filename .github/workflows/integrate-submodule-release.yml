@@ -49,7 +49,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           # Use PAT if default token insufficient or triggering other workflows
-          # token: ${{ secrets.YOUR_PAT }}
+          # token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           # Fetch submodules definitions, but don't checkout content yet
           submodules: "false" # We'll handle checkout manually
 
@@ -60,7 +60,7 @@ jobs:
 
       - name: Initialize and Update Specific Submodule to Tag
         run: |
-          SUBMODULE_PATH="${{ steps.vars.outputs.submodule_path }}"
+          SUBMODULE_PATH="src/${{ steps.vars.outputs.submodule_path }}"
           TAG="${{ steps.vars.outputs.tag }}"
 
           echo "Initializing submodules..."
@@ -71,7 +71,7 @@ jobs:
           git fetch origin --tags # Ensure tag is available locally
           # Checkout the specific tag DETACHED HEAD is OK here
           git checkout "refs/tags/$TAG"
-          cd .. # Back to main repo root
+          cd ../.. # Back to main repo root
 
           echo "Staging updated submodule reference..."
           git add "$SUBMODULE_PATH"
