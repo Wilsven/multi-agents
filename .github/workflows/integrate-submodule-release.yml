@@ -79,7 +79,7 @@ jobs:
       - name: Check for Changes & Commit/Push
         id: commit_push
         run: |
-          SUBMODULE_PATH="${{ steps.vars.outputs.submodule_path }}"
+          SUBMODULE_PATH="src/${{ steps.vars.outputs.submodule_path }}"
           TAG="${{ steps.vars.outputs.tag }}"
           if git diff --quiet --cached; then
             echo "Submodule '$SUBMODULE_PATH' at tag '$TAG' caused no change or was already updated."
