@@ -1,5 +1,5 @@
 # .github/workflows/update-submodules.yml (in main repo)
-name: Update Submodules (Scheduled)
+name: Scheduled Update Submodules (Main)
 
 on:
   schedule:
