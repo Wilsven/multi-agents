@@ -87,6 +87,14 @@ jobs:
               fi
           done
 
+          # ***** ADD DEBUGGING HERE *****
+          echo "DEBUG: Checking Git status after attempting staging:"
+          git status --short # Shows staged (M, A, etc. in first column) and unstaged changes
+          echo "DEBUG: Checking Git diff --cached --name-only:"
+          git diff --cached --name-only # Lists paths that are actually staged
+          echo "DEBUG: Finished checking status."
+          # ***** END DEBUGGING *****
+
           # Check if anything was ACTUALLY staged
           # `git diff --cached --quiet` compares HEAD to the index (staging area).
           # It exits 0 if NO differences (nothing staged), 1 if differences (something staged).
@@ -117,6 +125,7 @@ jobs:
 
   # Add a separate job for manual dispatch targeting a specific branch
   update-manual-dispatch-branch:
+    name: Update Submodules (Manual Trigger)
     runs-on: ubuntu-latest
     # Only run this job for workflow_dispatch AND if a specific branch was provided
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.branch != ''
