@@ -2,9 +2,9 @@
 name: Scheduled Update Submodules (Main)
 
 on:
-  schedule:
-    # At 12:00 AM, only on Friday (adjust cron syntax and timing as needed)
-    - cron: "0 0 * * 5"
+  # schedule:
+  #   # At 12:00 AM, only on Friday (adjust cron syntax and timing as needed)
+  #   - cron: "0 0 * * 5"
   workflow_dispatch: # Allows manual triggering
 
 permissions:
