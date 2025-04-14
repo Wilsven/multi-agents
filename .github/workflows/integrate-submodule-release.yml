@@ -1,0 +1,94 @@
+name: Integrate Submodule Release Tag
+
+on:
+  repository_dispatch:
+    types: [submodule-released] # Match event-type from submodule workflow
+  workflow_dispatch: # Keep manual trigger as backup/alternative
+    inputs:
+      submodule_path:
+        description: "Path to the submodule (e.g., multi-agents-api)"
+        required: true
+      tag:
+        description: "Tag to check out in the submodule (e.g., v1.2.0)"
+        required: true
+
+permissions:
+  contents: write # To commit/push back to the main repo
+
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract Payload Data (Repository Dispatch)
+        if: github.event_name == 'repository_dispatch'
+        id: dispatch_payload
+        run: |
+          echo "submodule_path=${{ github.event.client_payload.submodule_path }}" >> $GITHUB_OUTPUT
+          echo "tag=${{ github.event.client_payload.tag }}" >> $GITHUB_OUTPUT
+
+      - name: Extract Payload Data (Workflow Dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        id: manual_payload
+        run: |
+          echo "submodule_path=${{ github.event.inputs.submodule_path }}" >> $GITHUB_OUTPUT
+          echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+
+      - name: Set Variables
+        id: vars
+        run: |
+          # Combine outputs from previous steps
+          if [ -n "${{ steps.dispatch_payload.outputs.submodule_path }}" ]; then
+            echo "submodule_path=${{ steps.dispatch_payload.outputs.submodule_path }}" >> $GITHUB_OUTPUT
+            echo "tag=${{ steps.dispatch_payload.outputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "submodule_path=${{ steps.manual_payload.outputs.submodule_path }}" >> $GITHUB_OUTPUT
+            echo "tag=${{ steps.manual_payload.outputs.tag }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+        with:
+          # Use PAT if default token insufficient or triggering other workflows
+          # token: ${{ secrets.YOUR_PAT }}
+          # Fetch submodules definitions, but don't checkout content yet
+          submodules: "false" # We'll handle checkout manually
+
+      - name: Configure Git User
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions-bot@users.noreply.github.com"
+
+      - name: Initialize and Update Specific Submodule to Tag
+        run: |
+          SUBMODULE_PATH="${{ steps.vars.outputs.submodule_path }}"
+          TAG="${{ steps.vars.outputs.tag }}"
+
+          echo "Initializing submodules..."
+          git submodule update --init --recursive # Ensure all are initialized if needed
+
+          echo "Updating submodule '$SUBMODULE_PATH' to tag '$TAG'..."
+          cd "$SUBMODULE_PATH"
+          git fetch origin --tags # Ensure tag is available locally
+          # Checkout the specific tag DETACHED HEAD is OK here
+          git checkout "refs/tags/$TAG"
+          cd .. # Back to main repo root
+
+          echo "Staging updated submodule reference..."
+          git add "$SUBMODULE_PATH"
+
+      - name: Check for Changes & Commit/Push
+        id: commit_push
+        run: |
+          SUBMODULE_PATH="${{ steps.vars.outputs.submodule_path }}"
+          TAG="${{ steps.vars.outputs.tag }}"
+          if git diff --quiet --cached; then
+            echo "Submodule '$SUBMODULE_PATH' at tag '$TAG' caused no change or was already updated."
+            echo "committed=false" >> $GITHUB_OUTPUT
+          else
+            echo "Submodule '$SUBMODULE_PATH' reference updated to tag '$TAG'. Committing..."
+            COMMIT_MSG="feat(deps): Update $SUBMODULE_PATH submodule to tag $TAG"
+            git commit -m "$COMMIT_MSG"
+            echo "Pushing changes..."
+            git push origin HEAD:${{ github.ref_name }} # Push to the branch workflow ran on (usually main)
+            echo "committed=true" >> $GITHUB_OUTPUT
+          fi

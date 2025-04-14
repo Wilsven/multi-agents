@@ -1,9 +1,10 @@
+# .github/workflows/update-submodules.yml (in main repo)
 name: Update Submodules
 
 on:
   schedule:
-    # Runs every hour (adjust as needed)
-    - cron: "0 * * * *"
+    # At 12:00 AM, only on Friday
+    - cron: "0 0 * * 5"
   workflow_dispatch: # Allows manual triggering
 
 permissions:
@@ -12,9 +13,10 @@ permissions:
 
 jobs:
   update:
+    name: Update Submodules
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Main Repository
+      - name: Checkout Repo
         uses: actions/checkout@v4
         with:
           # We need to fetch the submodules too, but not necessarily update them yet
@@ -23,7 +25,7 @@ jobs:
           fetch-depth: 0
           # Use a PAT or App token if your default GITHUB_TOKEN doesn't have push rights
           # Or if you need to trigger other workflows on the push this action makes.
-          # token: ${{ secrets.YOUR_PAT_OR_APP_TOKEN }}
+          # token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
       - name: Configure Git User
         run: |
