@@ -92,7 +92,7 @@ jobs:
               echo "Submodule '$SUBMODULE_PATH' reference updated to tag '$TAG'. Committing..."
               git status --short # Show what's staged
 
-              COMMIT_MSG="feat(deps): Update $SUBMODULE_PATH submodule to tag $TAG" # Commit message clearly states the version tag
+              COMMIT_MSG="chore(submodules): update $SUBMODULE_PATH submodule to tag $TAG ($(date +'%Y-%m-%d'))" # Commit message clearly states the version tag
               git commit -m "$COMMIT_MSG"
 
               echo "Pushing changes..."

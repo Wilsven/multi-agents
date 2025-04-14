@@ -82,7 +82,7 @@ jobs:
               echo "Staged changes detected. Committing..."
               git status --short # Show what's staged again before commit
 
-              COMMIT_MSG="chore(submodules): Update submodule references ($(date +'%Y-%m-%d'))"
+              COMMIT_MSG="chore(submodules): update submodule references ($(date +'%Y-%m-%d'))"
               echo "$COMMIT_MSG"
               git commit -m "$COMMIT_MSG"
 

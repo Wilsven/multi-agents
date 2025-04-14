@@ -95,7 +95,7 @@ jobs:
               echo "Staged changes detected on ${{ matrix.branch }}. Committing..."
               git status --short # Show what's staged again before commit
 
-              COMMIT_MSG="chore(submodules): Update submodule references on ${{ matrix.branch }} ($(date +'%Y-%m-%d'))"
+              COMMIT_MSG="chore(submodules): update submodule references on ${{ matrix.branch }} ($(date +'%Y-%m-%d'))"
               echo "$COMMIT_MSG"
               git commit -m "$COMMIT_MSG"
 
@@ -192,7 +192,7 @@ jobs:
               echo "Staged changes detected on ${{ github.event.inputs.branch }}. Committing..."
               git status --short # Show what's staged
 
-              COMMIT_MSG="chore(submodules): Update submodule references on ${{ github.event.inputs.branch }} ($(date +'%Y-%m-%d'))"
+              COMMIT_MSG="chore(submodules): update submodule references on ${{ github.event.inputs.branch }} ($(date +'%Y-%m-%d'))"
               echo "$COMMIT_MSG"
               git commit -m "$COMMIT_MSG"
 
