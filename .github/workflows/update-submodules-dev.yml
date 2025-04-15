@@ -51,17 +51,21 @@ jobs:
       - name: Update Submodule References to Latest Remote HEAD on Branch (${{ matrix.branch }})
         run: |
           echo "Updating submodules on branch ${{ matrix.branch }} to track latest commit on their default remote branch..."
-          # This updates the working tree and submodule checkout on the target branch
+          # This command checks the remote 'origin' for the branch configured for each submodule
+          # (usually 'main' or 'master') and updates the main repo's index if the remote has moved.
           git submodule update --remote --init --recursive
 
       - name: Check for Changes, Stage ONLY Updated Submodules, Commit, and Push to (${{ matrix.branch }})
         id: commit_push
         run: |
-          # Get list of changed paths in the working tree compared to the index.
+          # Get list of changed files/paths in the working tree compared to the index.
+          # Updated submodules will appear here by their path.
+          # Use '|| true' to prevent the command failing the step if there are no changes (git diff exits 1)
           CHANGED_PATHS=$(git diff --name-only || true)
 
           if [ -z "$CHANGED_PATHS" ]; then
-              echo "No working tree changes detected on ${{ matrix.branch }}."
+              # No changes detected by git diff
+              echo "No working tree changes detected on ${{ matrix.branch }} (working tree is clean compared to index)."
               echo "committed=false" >> $GITHUB_OUTPUT
               exit 0
           fi
@@ -73,13 +77,11 @@ jobs:
           # Ensure we ONLY stage the detected submodule paths.
           # Filter CHANGED_PATHS to only include expected submodule paths.
           # This prevents staging accidental non-submodule files if any existed.
-          STAGED_SOMETHING=true
           echo "$CHANGED_PATHS" | while IFS= read -r path; do
               # Basic check: Does the path exist in .gitmodules? A more robust check might be needed
               # if you have deeply nested submodules or complex paths.
               # This grep is simple: it checks if the path appears literally in the .gitmodules file.
               if grep -q "path = ${path}$" .gitmodules; then
-                  STAGED_SOMETHING=true
                   echo "Staging updated submodule on ${{ matrix.branch }}: $path"
                   git add "$path"
               else
@@ -103,9 +105,9 @@ jobs:
               git push origin HEAD:${{ matrix.branch }} # Push specifically back to the branch from the matrix
               echo "committed=true" >> $GITHUB_OUTPUT
           else
-            # If exit code is 0 (no differences found), run this block.
-            echo "No relevant submodule changes were found in the staging area."
-            echo "committed=false" >> $GITHUB_OUTPUT # Set output to false
+              # If exit code is 0 (no differences found), run this block.
+              echo "No relevant submodule changes were staged on ${{ matrix.branch }}."
+              echo "committed=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Final Status for (${{ matrix.branch }})
@@ -145,17 +147,21 @@ jobs:
       - name: Update Submodule References to Latest Remote HEAD on Branch (${{ github.event.inputs.branch }})
         run: |
           echo "Updating submodules on branch ${{ github.event.inputs.branch }} to track latest commit on their default remote branch..."
-          # This updates the working tree and submodule checkout on the target branch
+          # This command checks the remote 'origin' for the branch configured for each submodule
+          # (usually 'main' or 'master') and updates the main repo's index if the remote has moved.
           git submodule update --remote --init --recursive
 
       - name: Check for Changes, Stage ONLY Updated Submodules, Commit, and Push to (${{ github.event.inputs.branch }})
         id: commit_push
         run: |
-          # Get list of changed paths in the working tree compared to the index.
+          # Get list of changed files/paths in the working tree compared to the index.
+          # Updated submodules will appear here by their path.
+          # Use '|| true' to prevent the command failing the step if there are no changes (git diff exits 1)
           CHANGED_PATHS=$(git diff --name-only || true)
 
           if [ -z "$CHANGED_PATHS" ]; then
-              echo "No working tree changes detected on ${{ github.event.inputs.branch }}."
+              # No changes detected by git diff
+              echo "No working tree changes detected on ${{ github.event.inputs.branch }} (working tree is clean compared to index)."
               echo "committed=false" >> $GITHUB_OUTPUT
               exit 0
           fi
@@ -167,13 +173,11 @@ jobs:
           # Ensure we ONLY stage the detected submodule paths.
           # Filter CHANGED_PATHS to only include expected submodule paths.
           # This prevents staging accidental non-submodule files if any existed.
-          STAGED_SOMETHING=true
           echo "$CHANGED_PATHS" | while IFS= read -r path; do
               # Basic check: Does the path exist in .gitmodules? A more robust check might be needed
               # if you have deeply nested submodules or complex paths.
               # This grep is simple: it checks if the path appears literally in the .gitmodules file.
               if grep -q "path = ${path}$" .gitmodules; then
-                  STAGED_SOMETHING=true
                   echo "Staging updated submodule on ${{ github.event.inputs.branch }}: $path"
                   git add "$path"
               else
@@ -184,14 +188,11 @@ jobs:
           # Check if anything was ACTUALLY staged
           # `git diff --cached --quiet` compares HEAD to the index (staging area).
           # It exits 0 if NO differences (nothing staged), 1 if differences (something staged).
-          if git diff --cached --quiet; then
-              echo "No relevant submodule changes were staged on ${{ github.event.inputs.branch }}."
-              echo "committed=false" >> $GITHUB_OUTPUT
-          else:
-              # If the exit code is non-zero, something IS staged.
+          if ! git diff --cached --quiet; then
+              # If exit code is NON-ZERO (differences found), run this block.
               echo "Staged changes detected on ${{ github.event.inputs.branch }}. Committing..."
-              git status --short # Show what's staged
-
+              git status --short # Show what's staged again before commit
+              
               COMMIT_MSG="chore(submodules): update submodule references on ${{ github.event.inputs.branch }} ($(date +'%Y-%m-%d'))"
               echo "$COMMIT_MSG"
               git commit -m "$COMMIT_MSG"
@@ -199,7 +200,11 @@ jobs:
               echo "Pushing changes to origin/${{ github.event.inputs.branch }}..."
               git push origin HEAD:${{ github.event.inputs.branch }} # Push specifically back to the branch from the matrix
               echo "committed=true" >> $GITHUB_OUTPUT
-          fi
+          else:
+              # If exit code is 0 (no differences found), run this block.
+              echo "No relevant submodule changes were staged on ${{ github.event.inputs.branch }}."
+              echo "committed=false" >> $GITHUB_OUTPUT
+              fi
 
       - name: Final Status for (${{ github.event.inputs.branch }})
         run: |
