@@ -1,0 +1,20 @@
+# Override for Agent Development
+# Includes API volume mount because Agent depends on API
+
+services:
+  agent:
+    volumes:
+      # Mount the sibling agent repo into the container
+      - ../multi-agents-agent:/app # Adjust target path based on WORKDIR/PYTHONPATH
+    # Override command for development if needed
+    command: uvicorn app.main:app --port 8001 --host 0.0.0.0 --reload --reload-dir /app/app
+
+  # Configure API service to use local code too
+  api:
+    volumes:
+      # Mount the sibling API repository into the container
+      - ../multi-agents-api/app:/app/app # Adjust target path based on WORKDIR/PYTHONPATH
+      - ../multi-agents-api/scripts:/app/scripts # Mount other needed dirs
+      - ../multi-agents-api/data:/app/data
+    # Optional: Ensure API also runs with reload if you want changes there reflected too
+    command: uvicorn app.main:app --port 8000 --host 0.0.0.0 --reload --reload-dir /app/app

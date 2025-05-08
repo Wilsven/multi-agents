@@ -1,0 +1,10 @@
+# Override for API Development
+services:
+  api:
+    volumes:
+      # Mount the sibling API repository into the container
+      - ../multi-agents-api/app:/app/app # Adjust target path based on WORKDIR/PYTHONPATH
+      - ../multi-agents-api/scripts:/app/scripts # Mount other needed dirs
+      - ../multi-agents-api/data:/app/data
+    # Override command for development with reload
+    command: uvicorn app.main:app --port 8000 --host 0.0.0.0 --reload --reload-dir /app/app
