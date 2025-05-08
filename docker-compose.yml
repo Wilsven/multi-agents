@@ -1,0 +1,120 @@
+services:
+  # API Service (FastAPI)
+  api:
+    container_name: api_service
+    build:
+      context: ./src/api
+      dockerfile: Dockerfile
+    ports:
+      # Map host port 8000 to container port 8000
+      - "8000:8000"
+    # volumes:
+    #   # Mount the local API code into the container's /app directory
+    #   # This enables live reloading on code changes
+    #   - ./src/api/app:/app/app
+    #   - ./src/api/scripts:/app/scripts # Mount scripts if you change them often
+    #   - ./src/api/data:/app/data
+    # Load environment variables from files.
+    # Files are loaded in order. Variables in later files override earlier ones.
+    # Variables defined in 'environment:' below take highest precedence.
+    env_file:
+      - .env # General local dev settings (optional)
+      - .azure.env # Azure-specific settings (copied/symlinked by dev)
+    environment:
+      # Define any environment variables needed by the API service
+      # Example: DATABASE_URL: postgresql://user:password@db:5432/apidb
+      # For development, you might use hardcoded values or a .env file (see below)
+      ENV_TYPE: development
+    # If API depends on a database, add 'depends_on' here
+    # depends_on:
+    #   - db
+    healthcheck: # Optional but useful healthcheck for API
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"] # Assuming you add a /health endpoint
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s # Give it time to start
+    restart: unless-stopped
+
+  # # AGENT Service (FastAPI)
+  # agent:
+  #   container_name: agent_service
+  #   build:
+  #     context: ./src/agent
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "8001:8001"
+  #   volumes:
+  #     - ./src/agent:/app
+  #   env_file:
+  #     - .env # General local dev settings
+  #     - .azure.env # Azure-specific settings
+  #   environment:
+  #     # CRUCIAL: Tell the AGENT how to reach the API service.
+  #     # 'api' is the service name defined above. Docker Compose handles DNS.
+  #     # '8000' is the port the API service EXPOSES *inside* the Docker network.
+  #     API_URL: http://api:8000
+  #     # Add other necessary agent env vars
+  #     ENV_TYPE: development
+  #   depends_on:
+  #     # Ensure the 'api' container is started before the 'agent' container
+  #     # Note: This doesn't guarantee the API service is ready, just the container.
+  #     # For true readiness, we consider healthchecks (more advanced).
+  #     api:
+  #       # Wait for API healthcheck
+  #       condition: service_healthy
+
+  # # FRONTEND Service (Angular)
+  # frontend:
+  #   container_name: frontend_service
+  #   build:
+  #     context: ./src/frontend
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     # Map host port 4200 to container port 4200 (Angular default)
+  #     - "4200:4200"
+  #   volumes:
+  #     # Mount local FRONTEND code. Exclude node_modules to use the ones installed in the container.
+  #     - ./src/frontend:/app
+  #     # Use a named volume or anonymous volume for node_modules to avoid overwriting container's node_modules
+  #     - /app/node_modules
+  #   environment:
+  #     # Env vars needed by Angular during build/runtime (if any)
+  #     # NOTE: The Angular app runs in the USER'S BROWSER.
+  #     # It will typically access the AGENT via localhost or the host machine's IP,
+  #     # using the PORT MAPPED ON THE HOST (8001 in this case).
+  #     # So, configure your Angular environment.ts (for development) like:
+  #     # agentUrl: 'http://localhost:8001'
+  #     ENV_TYPE: development
+  #   depends_on:
+  #     # Optional, but good practice if frontend might make initial calls on load
+  #     agent:
+  #       # Wait for API healthcheck
+  #       condition: service_healthy
+  #     api:
+  #       # Wait for API healthcheck
+  #       condition: service_healthy
+
+  # # --- Optional: Database Service (Example: PostgreSQL) ---
+  # db:
+  #   container_name: local_postgres_db
+  #   image: postgres:15
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   environment:
+  #     POSTGRES_USER: ${POSTGRES_USER}
+  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+  #     POSTGRES_DB: ${POSTGRES_DB}
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #     start_period: 10s
+  #   restart: unless-stopped
+# # --- Optional: Define volumes if needed (e.g., for databases for persistence, node_modules cache) ---
+# volumes:
+#   postgres_data:
+#   node_modules_frontend:

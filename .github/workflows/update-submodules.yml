@@ -2,9 +2,9 @@
 name: Scheduled Update Submodules (Main)
 
 on:
-  schedule:
-    # At 12:00 AM, only on Friday (adjust cron syntax and timing as needed)
-    - cron: "0 0 * * 5"
+  # schedule:
+  #   # At 12:00 AM, only on Friday (adjust cron syntax and timing as needed)
+  #   - cron: "0 0 * * 5"
   workflow_dispatch: # Allows manual triggering
 
 permissions:
@@ -32,9 +32,9 @@ jobs:
           git config user.name "GitHub Actions Bot"
           git config user.email "actions-bot@users.noreply.github.com"
 
-      - name: Update Submodule References to Latest
+      - name: Update Submodule References to Latest Remote HEAD
         run: |
-          echo "Updating submodules to track the latest commit on their default branch..."
+          echo "Updating submodules to track the latest commit on their default remote branch..."
           # This command checks the remote 'origin' for the branch configured for each submodule
           # (usually 'main' or 'master') and updates the main repo's index if the remote has moved.
           git submodule update --remote --init --recursive
@@ -48,9 +48,10 @@ jobs:
           CHANGED_PATHS=$(git diff --name-only || true)
 
           if [ -z "$CHANGED_PATHS" ]; then
-            # No changes detected by git diff
-            echo "No working tree changes detected initially (working tree is clean compared to index)."
-            echo "committed=false" >> $GITHUB_OUTPUT
+              # No changes detected by git diff
+              echo "No working tree changes detected (working tree is clean compared to index)."
+              echo "committed=false" >> $GITHUB_OUTPUT
+              exit 0
           fi
 
           # Changes were detected
@@ -60,13 +61,11 @@ jobs:
           # Ensure we ONLY stage the detected submodule paths.
           # Filter CHANGED_PATHS to only include expected submodule paths.
           # This prevents staging accidental non-submodule files if any existed.
-          STAGED_SOMETHING=false
           echo "$CHANGED_PATHS" | while IFS= read -r path; do
               # Basic check: Does the path exist in .gitmodules? A more robust check might be needed
               # if you have deeply nested submodules or complex paths.
               # This grep is simple: it checks if the path appears literally in the .gitmodules file.
               if grep -q "path = ${path}$" .gitmodules; then
-                  STAGED_SOMETHING=true
                   echo "Staging updated submodule: $path"
                   git add "$path"
               else
@@ -78,11 +77,11 @@ jobs:
           # `git diff --cached --quiet` compares HEAD to the index (staging area).
           # It exits 0 if NO differences (nothing staged), 1 if differences (something staged).
           if ! git diff --cached --quiet; then
-              # If the exit code is non-zero, something IS staged.
+              # If exit code is NON-ZERO (differences found), run this block.
               echo "Staged changes detected. Committing..."
               git status --short # Show what's staged again before commit
 
-              COMMIT_MSG="chore(submodules): Update submodule references ($(date +'%Y-%m-%d'))"
+              COMMIT_MSG="chore(submodules): update submodule references ($(date +'%Y-%m-%d'))"
               echo "$COMMIT_MSG"
               git commit -m "$COMMIT_MSG"
 
@@ -90,14 +89,10 @@ jobs:
               git push origin HEAD:${{ github.ref_name }} # Push to the same branch the workflow ran on
               echo "committed=true" >> $GITHUB_OUTPUT
           else
-            # If exit code is 0 (no differences found), run this block.
-            echo "No relevant submodule changes were found in the staging area."
-            echo "committed=false" >> $GITHUB_OUTPUT # Set output to false
+              # If exit code is 0 (no differences found), run this block.
+              echo "No relevant submodule changes were staged."
+              echo "committed=false" >> $GITHUB_OUTPUT
           fi
-
-      - name: No Changes to Commit
-        if: steps.commit_push.outputs.changed == 'false'
-        run: echo "Submodules are already up-to-date with their remote branches."
 
       - name: Final Status
         run: |

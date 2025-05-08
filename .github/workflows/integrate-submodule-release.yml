@@ -39,11 +39,11 @@ jobs:
         run: |
           # Combine outputs from previous steps
           if [ -n "${{ steps.dispatch_payload.outputs.submodule_path }}" ]; then
-            echo "submodule_path=${{ steps.dispatch_payload.outputs.submodule_path }}" >> $GITHUB_OUTPUT
-            echo "tag=${{ steps.dispatch_payload.outputs.tag }}" >> $GITHUB_OUTPUT
+              echo "submodule_path=${{ steps.dispatch_payload.outputs.submodule_path }}" >> $GITHUB_OUTPUT
+              echo "tag=${{ steps.dispatch_payload.outputs.tag }}" >> $GITHUB_OUTPUT
           else
-            echo "submodule_path=${{ steps.manual_payload.outputs.submodule_path }}" >> $GITHUB_OUTPUT
-            echo "tag=${{ steps.manual_payload.outputs.tag }}" >> $GITHUB_OUTPUT
+              echo "submodule_path=${{ steps.manual_payload.outputs.submodule_path }}" >> $GITHUB_OUTPUT
+              echo "tag=${{ steps.manual_payload.outputs.tag }}" >> $GITHUB_OUTPUT
           fi
 
       - name: Checkout Repo
@@ -77,25 +77,34 @@ jobs:
           echo "Staging updated submodule reference..."
           git add "$SUBMODULE_PATH"
 
-      - name: Check for Changes & Commit/Push
+      - name: Check for Changes, Commit, and Push
         id: commit_push
         run: |
           SUBMODULE_PATH="${{ steps.vars.outputs.submodule_path }}"
           TAG="${{ steps.vars.outputs.tag }}"
           # Check if the specific submodule path was staged
           if git diff --cached --quiet -- "$SUBMODULE_PATH"; then
-            # Exit code 0 means NO staged changes for this specific path
-            echo "Submodule '$SUBMODULE_PATH' at tag '$TAG' resulted in no change or was already updated."
-            echo "committed=false" >> $GITHUB_OUTPUT
+              # If exit code is 0 for this specific path (no differences found), run this block.
+              echo "Submodule '$SUBMODULE_PATH' at tag '$TAG' resulted in no change or was already updated."
+              echo "committed=false" >> $GITHUB_OUTPUT
           else
-            # Exit code non-zero means the submodule path IS staged
-            echo "Submodule '$SUBMODULE_PATH' reference updated to tag '$TAG'. Committing..."
-            git status --short # Show what's staged
+              # If exit code is NON-ZERO for this specific path (differences found), run this block.
+              echo "Submodule '$SUBMODULE_PATH' reference updated to tag '$TAG'. Committing..."
+              git status --short # Show what's staged again before commit
 
-            COMMIT_MSG="feat(deps): Update $SUBMODULE_PATH submodule to tag $TAG" # Commit message clearly states the version tag
-            git commit -m "$COMMIT_MSG"
+              COMMIT_MSG="chore(submodules): update $SUBMODULE_PATH submodule to tag $TAG ($(date +'%Y-%m-%d'))"
+              echo "$COMMIT_MSG"
+              git commit -m "$COMMIT_MSG"
 
-            echo "Pushing changes..."
-            git push origin HEAD:${{ github.ref_name }} # Push to the branch workflow ran on (usually main)
-            echo "committed=true" >> $GITHUB_OUTPUT
+              echo "Pushing changes..."
+              git push origin HEAD:${{ github.ref_name }} # Push to the branch workflow ran on (usually main)
+              echo "committed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Final Status
+        run: |
+          if [ "${{ steps.commit_push.outputs.committed }}" = "true" ]; then
+            echo "Workflow finished. Submodule changes were committed and pushed."
+          else
+            echo "Workflow finished. No relevant submodule changes were committed."
           fi

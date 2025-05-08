@@ -29,8 +29,31 @@ services:
     name: frontend
     # Points to where the frontend submodule will be checked out
     project: ./src/frontend
-    language: javascript
+    language: ts
     host: staticwebapp
     module: frontend # Links to infra/modules/frontend.bicep
 
-# No hooks needed for fetching code
+hooks:
+  postprovision:
+    windows:
+      shell: pwsh
+      run: ./scripts/postprovision.ps1
+      internal: true
+      continueOnError: false
+    posix:
+      shell: sh
+      run: ./scripts/postprovision.sh
+      interactive: true
+      continueOnError: false
+  # This hook runs before the 'azd deploy' command executes (or the deploy part of 'azd up')
+  predeploy:
+    windows:
+      shell: pwsh
+      run: ./scripts/update_submodules.ps1
+      internal: true
+      continueOnError: false
+    posix:
+      shell: sh
+      run: ./scripts/update_submodules.sh
+      interactive: true
+      continueOnError: false
