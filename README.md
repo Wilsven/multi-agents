@@ -149,41 +149,54 @@ For more information on development, you may find the following documentations u
 
 ### Running Locally <a id="running-locally"></a>
 
-1. Ensure you're at the root of the project if not run `cd ..` to return to the root
+1. Ensure you're at the root of the project and have Docker installed and running.
 
 > [!TIP]
 > You may run `pwd` in your terminal to check your current working directory. Run `Get-Location` if you're using PowerShell.
 
-2. Run the following command in your terminal:
+2. Configure your environment variables by creating and filling up the `.env` file:
+
+   Then edit the `.env` file with your specific configuration values (API keys, database connections, etc.).
+
+   > [!IMPORTANT]
+   > Make sure to fill in all required environment variables in the `.env` file before proceeding. The application may not work correctly without proper configuration.
+
+3. Build and start all services using Docker Compose:
 
    ```bash
-   make run-server
+   docker compose up --build
    ```
 
    This will:
 
-   - Install the `uv` Python package and project manager, and sync the dependencies.
-   - Start the two FastAPI servers.
-   - Install frontend dependencies and start the Angular development server.
+   - Build Docker images for all services (API, Agent, and Frontend)
+   - Start all containers with proper networking and dependencies
+   - Set up health checks and restart policies
 
-   ![Starting the Server](./media/start-server.png)
+   > [!NOTE]
+   > The `--build` flag ensures that Docker images are rebuilt with any recent changes. You can omit this flag for subsequent runs if no code changes were made.
 
-3. Access the application:
+4. Access the containerized application:
 
-   Once the script is running, you can visit:
+   Once all containers are running, you can visit:
 
    - **Main Server**: `http://127.0.0.1:8000` - Handles core application functionality.
    - **Agent Server**: `http://127.0.0.1:8001` - Dedicated to chat functionality.
-   - **Frontend Server**: `http://127.0.0.1:4200`
+   - **Frontend Server**: `http://127.0.0.1:3000` - React frontend application
 
-4. To access the API endpoints, add `/docs` to the backend URLs:
+5. To stop the containers, press `Ctrl+C` in the terminal where Docker Compose is running.
 
-   - **Main API Docs**: `http://127.0.0.1:8000/docs`.
-   - **Agent API Docs**: `http://127.0.0.1:8001/docs`.
+6. To access the API endpoints, add `/docs` to the backend URLs:
+
+   - **Main API Docs**: `http://127.0.0.1:8000/docs`
+   - **Agent API Docs**: `http://127.0.0.1:8001/docs`
 
    ![FastAPI Endpoints](./media/swagger.png)
 
    For more information on FastAPI endpoints, please refer to the [API Endpoints](./docs/API_ENDPOINTS.md) guide.
+
+> [!TIP]
+> Docker Compose provides a production-like environment with isolated containers and proper service orchestration.
 
 ## Deployment <a id="deployment"></a>
 
