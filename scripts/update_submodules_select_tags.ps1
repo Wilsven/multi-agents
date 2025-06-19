@@ -17,48 +17,48 @@ function Select-TagForSubmodule {
         [string]$SubmodulePath,
         [string]$SubmoduleName
     )
-    
+
     Write-Host ""
     Write-Host "📂 Processing $SubmoduleName ($SubmodulePath)" -ForegroundColor Yellow
     Write-Host "----------------------------------------" -ForegroundColor Yellow
-    
+
     if (-not (Test-Path $SubmodulePath)) {
         Write-Host "❌ Submodule directory $SubmodulePath not found" -ForegroundColor Red
         return $false
     }
-    
+
     # Change to submodule directory
     Push-Location $SubmodulePath
-    
+
     try {
         # Fetch latest tags
         Write-Host "🔄 Fetching tags..." -ForegroundColor Blue
         git fetch --tags
-        
+
         # Get available tags (last 10, sorted by version)
         Write-Host "📋 Available tags:" -ForegroundColor Green
         $tags = git tag -l --sort=-version:refname | Select-Object -First 10
-        
+
         if (-not $tags) {
             Write-Host "❌ No tags found for $SubmoduleName" -ForegroundColor Red
             return $false
         }
-        
+
         # Convert to array if single item
         if ($tags -is [string]) {
             $tags = @($tags)
         }
-        
+
         # Display tags with numbers
         for ($i = 0; $i -lt $tags.Count; $i++) {
             Write-Host "  $($i + 1). $($tags[$i])" -ForegroundColor White
         }
-        
+
         # Get user selection
         do {
             Write-Host ""
             $choice = Read-Host "🎯 Select tag for $SubmoduleName (1-$($tags.Count)) or 'latest' for most recent"
-            
+
             if ($choice -eq "latest") {
                 $selectedTag = $tags[0]
                 $validChoice = $true
@@ -72,11 +72,11 @@ function Select-TagForSubmodule {
                 $validChoice = $false
             }
         } while (-not $validChoice)
-        
+
         # Checkout selected tag
         Write-Host "🔄 Checking out $selectedTag..." -ForegroundColor Blue
         git checkout $selectedTag
-        
+
         if ($LASTEXITCODE -eq 0) {
             Write-Host "✅ Successfully updated $SubmoduleName to $selectedTag" -ForegroundColor Green
             return $true

@@ -12,17 +12,17 @@ foreach ($submodule in $Submodules) {
     if (Test-Path $submodule) {
         Write-Host "📁 Processing $submodule..." -ForegroundColor Yellow
         Push-Location $submodule
-        
+
         try {
             # Fetch latest changes
             git fetch origin
-            
+
             # Checkout staging branch
             git checkout staging
-            
+
             # Pull latest changes
             git pull origin staging
-            
+
             $commitHash = git rev-parse --short HEAD
             Write-Host "✅ $submodule updated to latest staging commit: $commitHash" -ForegroundColor Green
         }

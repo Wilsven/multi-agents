@@ -14,18 +14,18 @@ for submodule in "${SUBMODULES[@]}"; do
     if [ -d "$submodule" ]; then
         echo "📁 Processing $submodule..."
         cd "$submodule"
-        
+
         # Fetch latest changes
         git fetch origin
-        
+
         # Checkout staging branch
         git checkout staging
-        
+
         # Pull latest changes
         git pull origin staging
-        
+
         echo "✅ $submodule updated to latest staging commit: $(git rev-parse --short HEAD)"
-        
+
         # Return to root directory
         cd - > /dev/null
     else

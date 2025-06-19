@@ -1,5 +1,3 @@
-#!/usr/bin/env bash
-
 # Add the API repository into the src/api directory
 git submodule add https://github.com/0Upjh80d/agents-api.git ./src/api
 

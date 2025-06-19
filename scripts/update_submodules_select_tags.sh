@@ -27,46 +27,46 @@ declare -A submodules=(
 select_tag_for_submodule() {
     local submodule_path="$1"
     local submodule_name="$2"
-    
+
     echo ""
     echo -e "${YELLOW}📂 Processing $submodule_name ($submodule_path)${NC}"
     echo -e "${YELLOW}----------------------------------------${NC}"
-    
+
     if [ ! -d "$submodule_path" ]; then
         echo -e "${RED}❌ Submodule directory $submodule_path not found${NC}"
         return 1
     fi
-    
+
     # Change to submodule directory
     pushd "$submodule_path" > /dev/null
-    
+
     # Fetch latest tags
     echo -e "${BLUE}🔄 Fetching tags...${NC}"
     git fetch --tags
-    
+
     # Get available tags (last 10, sorted by version)
     echo -e "${GREEN}📋 Available tags:${NC}"
     mapfile -t tags < <(git tag -l --sort=-version:refname | head -10)
-    
+
     if [ ${#tags[@]} -eq 0 ]; then
         echo -e "${RED}❌ No tags found for $submodule_name${NC}"
         popd > /dev/null
         return 1
     fi
-    
+
     # Display tags with numbers
     for i in "${!tags[@]}"; do
         echo -e "${WHITE}  $((i + 1)). ${tags[i]}${NC}"
     done
-    
+
     # Get user selection
     local valid_choice=false
     local selected_tag=""
-    
+
     while [ "$valid_choice" = false ]; do
         echo ""
         read -p "🎯 Select tag for $submodule_name (1-${#tags[@]}) or 'latest' for most recent: " choice
-        
+
         if [ "$choice" = "latest" ]; then
             selected_tag="${tags[0]}"
             valid_choice=true
@@ -77,7 +77,7 @@ select_tag_for_submodule() {
             echo -e "${RED}❌ Invalid selection. Please enter a number between 1 and ${#tags[@]} or 'latest'${NC}"
         fi
     done
-    
+
     # Checkout selected tag
     echo -e "${BLUE}🔄 Checking out $selected_tag...${NC}"
     if git checkout "$selected_tag"; then

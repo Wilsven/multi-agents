@@ -158,8 +158,8 @@ For more information on development, you may find the following documentations u
 
    Then edit the `.env` file with your specific configuration values (API keys, database connections, etc.).
 
-   > [!IMPORTANT]
-   > Make sure to fill in all required environment variables in the `.env` file before proceeding. The application may not work correctly without proper configuration.
+> [!IMPORTANT]
+> Make sure to fill in all required environment variables in the `.env` file before proceeding. The application may not work correctly without proper configuration.
 
 3. Build and start all services using Docker Compose:
 
@@ -173,8 +173,8 @@ For more information on development, you may find the following documentations u
    - Start all containers with proper networking and dependencies
    - Set up health checks and restart policies
 
-   > [!NOTE]
-   > The `--build` flag ensures that Docker images are rebuilt with any recent changes. You can omit this flag for subsequent runs if no code changes were made.
+> [!NOTE]
+> The `--build` flag ensures that Docker images are rebuilt with any recent changes. You can omit this flag for subsequent runs if no code changes were made.
 
 4. Access the containerized application:
 
@@ -192,8 +192,6 @@ For more information on development, you may find the following documentations u
    - **Agent API Docs**: `http://127.0.0.1:8001/docs`
 
    ![FastAPI Endpoints](./media/swagger.png)
-
-   For more information on FastAPI endpoints, please refer to the [API Endpoints](./docs/API_ENDPOINTS.md) guide.
 
 > [!TIP]
 > Docker Compose provides a production-like environment with isolated containers and proper service orchestration.

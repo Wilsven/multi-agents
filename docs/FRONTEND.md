@@ -20,7 +20,7 @@ The frontend module delivers a responsive React-based web application that provi
 
 The frontend implements a modern React architecture with TypeScript:
 
-```
+```bash
 ┌─────────────────────────────────────────────────────────────┐
 │                    React Frontend                           │
 ├─────────────────────────────────────────────────────────────┤

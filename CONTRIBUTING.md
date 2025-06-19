@@ -13,7 +13,7 @@ Thank you for contributing to our project! This guide outlines our team's standa
   - [Reviewer's Step-by-Step Guide](#reviewers-step-by-step-guide)
 - [Pull Request & Code Review Practices](#pull-request--code-review-practices)
 - [Issue Tracking & Commit Message Conventions](#issue-tracking--commit-message-conventions)
-- [Git Submodule Management & Deployment](#git-submodule-management--deployment)
+- [Git Submodule Management](#git-submodule-management)
 - [General Best Practices](#general-best-practices)
 
 ## Contribution Guidelines <a id="contribution-guidelines"></a>
@@ -298,9 +298,9 @@ We use GitHub Issues for tracking bugs, feature requests, and tasks, and we foll
 
 By using a consistent issue and commit strategy, we make project management and collaboration smoother. Everyone can see what issues are being worked on and why a given change was made.
 
-## Git Submodule Management & Deployment <a id="git-submodule-management--deployment"></a>
+## Git Submodule Management <a id="git-submodule-management"></a>
 
-For detailed information on managing Git submodules, deployment scenarios, best practices, and troubleshooting, refer to the [Git Submodule Management & Deployment Guide](./docs/GIT_SUBMODULE_MANAGEMENT.md).
+For detailed information on managing Git submodules, deployment scenarios, best practices, and troubleshooting, refer to the [Git Submodule Management](./docs/GIT_SUBMODULE_MANAGEMENT.md).
 
 ## General Best Practices <a id="general-best-practices"></a>
 

@@ -9,7 +9,9 @@ Before diving into the deployment process, it's crucial to understand our two di
 - **Production Deployment**: Uses tagged releases from submodule repositories. This is for stable, tested code that's ready for end users.
 - **Development Deployment**: Uses latest commits from staging branches. This is for testing new features and changes before they're released.
 
-> [!IMPORTANT] > **Never deploy untested code to production.** Always ensure that development deployments have been thoroughly tested before promoting changes to production.
+> [!IMPORTANT]
+>
+> **Never deploy untested code to production.** Always ensure that development deployments have been thoroughly tested before promoting changes to production.
 
 ## Local Development Updates
 
@@ -17,7 +19,9 @@ Before diving into the deployment process, it's crucial to understand our two di
 
 Before making any deployment decisions, you need to ensure your local environment reflects the current state of the repository. This step synchronizes your local submodules with the exact commits recorded in the main repository.
 
-> [!NOTE] > **Why this matters**: Submodules can drift from their recorded commits if you've been doing local development or testing. This step ensures you're working with the exact versions that are officially tracked.
+> [!NOTE]
+>
+> **Why this matters**: Submodules can drift from their recorded commits if you've been doing local development or testing. This step ensures you're working with the exact versions that are officially tracked.
 
 ```bash
 # For updating to committed versions (local)
@@ -44,13 +48,13 @@ Before you can perform a production deployment, ensure the following conditions 
 - **Executor:** Administrator or designated release manager
 - **Timing:** After all submodule releases are complete for the week (typically Friday afternoons or designated release windows)
 
-### Step 1: Navigate to Main Repository
+### Production Step 1: Navigate to Main Repository
 
 ```bash
 cd /path/to/agents
 ```
 
-### Step 2: Checkout Target Branch
+### Production Step 2: Checkout Target Branch
 
 Switch to the main branch, which represents your production-ready code. The main branch should always contain stable, tested code.
 
@@ -60,7 +64,7 @@ git checkout main
 
 **What happens here**: Git switches your working directory to reflect the main branch. Any uncommitted changes in other branches won't affect this process, but you should have a clean working directory.
 
-### Step 3: Ensure Main Repository is Up-to-Date
+### Production Step 3: Ensure Main Repository is Up-to-Date
 
 Pull the latest changes from the remote main branch. This ensures you're not missing any recent updates that other maintainers might have made.
 
@@ -68,7 +72,7 @@ Pull the latest changes from the remote main branch. This ensures you're not mis
 git pull origin main
 ```
 
-### Step 4: Update Submodules to Latest Release Tags
+### Production Step 4: Update Submodules to Latest Release Tags
 
 This is the core step where you select which versions of each submodule to include in your production deployment. Use the interactive script to carefully choose the appropriate tags.
 
@@ -85,18 +89,29 @@ This is the core step where you select which versions of each submodule to inclu
 **How the interactive process works**:
 
 1. The script will show you available tags for each submodule
+
+   ![Step 1](../media/update_submodules_select_tags_step_1.png)
+
 2. You'll select the appropriate version for each component
+
+   ![Step 2](../media/update_submodules_select_tags_step_2.png)
+
 3. The script updates each submodule to point to your selected tag
+
+   ![Step 3](../media/update_submodules_select_tags_step_3.png)
+
 4. Always choose the most recent stable tag unless you have a specific reason to use an older version
 
-> [!CAUTION] > **Tag Selection Guidelines**:
+> [!CAUTION]
+>
+> **Tag Selection Guidelines**:
 >
 > - Choose the **latest stable tag** for each submodule unless there's a specific compatibility issue
 > - Verify that the tags you're selecting have been properly tested together
 > - Avoid mixing very old tags with very new ones, as this can create compatibility issues
 > - When in doubt, consult with the component teams about which tags to use
 
-### Step 5: Check Status
+### Production Step 5: Check Status
 
 Verify what changes Git has detected. This step helps you confirm that the submodule updates were applied correctly.
 
@@ -123,7 +138,7 @@ no changes added to commit (use "git add" and/or "git commit -a")
 - The presence of all three submodules (`src/api`, `src/agent`, `src/frontend`) indicates they were all updated
 - If you don't see expected submodules listed, something went wrong in Step 4 - investigate before proceeding
 
-### Step 6: Stage the Updates
+### Production Step 6: Stage the Updates
 
 Add the submodule changes to Git's staging area. This prepares them for committing.
 
@@ -133,21 +148,21 @@ git add src/api src/agent src/frontend
 
 **Why stage explicitly**: We stage only the submodule directories to avoid accidentally committing other changes. This gives you precise control over what gets included in the deployment commit.
 
-### Step 7: Commit the Updates
+### Production Step 7: Commit the Updates
 
 Create a commit that records the new submodule versions. Use a clear, descriptive commit message that indicates this is a release update.
 
 ```bash
-git commit -m "chore(release): update submodules to latest release tags"
+git commit -m "chore(submodules): update $SUBMODULE_PATH submodule to tag $TAG (YYYY-MM-DD)"
 ```
 
 **Commit message best practices**:
 
-- Use the `chore(release):` prefix to indicate this is a release-related maintenance task
+- Use the `chore(submodules):` prefix to indicate this is a release-related maintenance task
 - Be specific about what was updated
-- Consider including version numbers if you want more detail: `chore(release): update submodules - api v1.2.3, agent v2.1.0, frontend v1.5.2`
+- For multiple submodule updates in one commit, include all updates: `chore(submodules): update api $TAG, agent $TAG, frontend $TAG (YYYY-MM-DD)` to keep to the git commit message character limit
 
-### Step 8: Push the Main Repository
+### Production Step 8: Push the Main Repository
 
 Push your changes to the remote repository, making them available to the team and deployment systems.
 
@@ -155,9 +170,11 @@ Push your changes to the remote repository, making them available to the team an
 git push origin main
 ```
 
-> [!WARNING] > **Point of no return**: Once you push to main, these changes become part of the official repository history. Make sure you're confident in your submodule selections before this step.
+> [!WARNING]
+>
+> **Point of no return**: Once you push to main, these changes become part of the official repository history. Make sure you're confident in your submodule selections before this step.
 
-### Step 9: Tag the Main Repository
+### Production Step 9: Tag the Main Repository
 
 Create a version tag for this release. This creates a permanent reference point that can be used for rollbacks or historical reference.
 
@@ -177,7 +194,7 @@ For detailed semantic versioning guidelines, refer to the [Release Strategy](../
 - **Minor version** (1.0.0 → 1.1.0): New backward-compatible features
 - **Patch version** (1.0.0 → 1.0.1): Backward-compatible bug fixes
 
-### Step 10: Deploy to Azure Production
+### Production Step 10: Deploy to Azure Production
 
 Execute the actual deployment to your production Azure environment.
 
@@ -193,7 +210,9 @@ azd up --environment agents
 
 **Monitor the deployment**: Watch the output for any errors or warnings. A successful deployment should complete without errors and provide you with URLs or endpoints to verify the deployment.
 
-> [!TIP] > **Post-deployment verification**: After deployment completes, always verify that:
+> [!TIP]
+>
+> **Post-deployment verification**: After deployment completes, always verify that:
 >
 > - The application is accessible and functioning
 > - Key features are working as expected
@@ -212,7 +231,7 @@ Development deployments allow you to test the latest changes before they become 
 - **Executor:** Development team lead or designated developer
 - **Timing:** As needed for testing and development (typically after significant changes are merged to staging branches)
 
-### Step 1: Navigate to Main Repository
+### Development Step 1: Navigate to Main Repository
 
 Ensure you're in the correct repository directory, just as with production deployments.
 
@@ -220,7 +239,7 @@ Ensure you're in the correct repository directory, just as with production deplo
 cd /path/to/agents
 ```
 
-### Step 2: Checkout Development Branch
+### Development Step 2: Checkout Development Branch
 
 Switch to the development branch, creating it if it doesn't exist. The development branch tracks the latest experimental changes.
 
@@ -236,7 +255,7 @@ git checkout dev
 - It's less stable than `main` but more current with the latest features
 - If the branch doesn't exist yet, creating it from `main` gives you a stable starting point
 
-### Step 3: Ensure Development Branch is Up-to-Date
+### Development Step 3: Ensure Development Branch is Up-to-Date
 
 Pull any recent changes that other developers might have made to the dev branch.
 
@@ -244,21 +263,23 @@ Pull any recent changes that other developers might have made to the dev branch.
 git pull origin dev
 ```
 
-### Step 4: Update Submodules to Latest Staging Commits
+### Development Step 4: Update Submodules to Latest Staging Commits
 
 This is where development deployment differs significantly from production. Instead of using tagged releases, you're pulling the very latest commits from each submodule's staging branch. Use the script to updating to latest staging commits from the submodules.
 
 ```bash
 # For updating to latest staging commits
-./scripts/update_submodules_to_staging.sh
+./scripts/update_submodules_dev.sh
 
 # Or on Windows
-./scripts/update_submodules_to_staging.ps1
+./scripts/update_submodules_dev.ps1
 ```
 
-> [!CAUTION] > **Staging branch stability**: Staging branches contain the latest changes but may not be as thoroughly tested as tagged releases. Expect potential issues and be prepared to troubleshoot problems that don't exist in production.
+> [!CAUTION]
+>
+> **Staging branch stability**: Staging branches contain the latest changes but may not be as thoroughly tested as tagged releases. Expect potential issues and be prepared to troubleshoot problems that don't exist in production.
 
-### Step 5: Check Status
+### Development Step 5: Check Status
 
 Verify that the submodule updates were applied correctly.
 
@@ -268,7 +289,7 @@ git status
 
 **What to look for**: Similar to production deployment, you should see modified submodules listed. The difference is that these point to the latest staging commits rather than specific tags.
 
-### Step 6: Stage the Updates
+### Development Step 6: Stage the Updates
 
 Add the submodule changes to the staging area.
 
@@ -276,17 +297,17 @@ Add the submodule changes to the staging area.
 git add src/api src/agent src/frontend
 ```
 
-### Step 7: Commit the Updates
+### Development Step 7: Commit the Updates
 
 Create a commit that documents this development deployment.
 
 ```bash
-git commit -m "chore: update submodules to latest staging commits"
+git commit -m "chore(submodules): update $SUBMODULE_PATH submodule references on dev (YYYY-MM-DD)"
 ```
 
-**Development commit messages**: Use `chore:`. Consider adding the date or a brief description of what features you're testing.
+**Development commit messages**: Use `chore(submodules):` prefix to keep within git commit message character limits. Consider adding a brief description of what features you're testing.
 
-### Step 8: Push the Development Branch
+### Development Step 8: Push the Development Branch
 
 Make your development deployment available to the team.
 
@@ -294,7 +315,7 @@ Make your development deployment available to the team.
 git push origin dev
 ```
 
-### Step 9: Deploy to Azure Development
+### Development Step 9: Deploy to Azure Development
 
 Deploy to your development Azure environment.
 

@@ -2,7 +2,7 @@
 
 # Define the expected relative path to the sibling API repository
 # Adjust 'api-repo' if your actual directory name is different (e.g., multi-agents-api)
-EXPECTED_SIBLING_REPO="multi-agents-agent"
+EXPECTED_SIBLING_REPO="agents-openai"
 
 echo "🚀 Starting development stack for Agent..."
 
@@ -17,7 +17,7 @@ if [ ! -d "../$EXPECTED_SIBLING_REPO" ]; then
     echo "❌ Required sibling directory not found!"
     echo "   Expected to find '$EXPECTED_SIBLING_REPO' at this location."
     echo "   Please ensure your 'multi-agents' and '$EXPECTED_SIBLING_REPO' repository clones are located side-by-side in the same parent directory."
-    # Exit the script with a failure code 
+    # Exit the script with a failure code
     exit 1
 fi
 

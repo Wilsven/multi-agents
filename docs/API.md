@@ -20,7 +20,7 @@ The API module delivers a robust FastAPI-based backend service that handles heal
 
 The API implements a modern FastAPI architecture with the following layers:
 
-```
+```bash
 ┌─────────────────────────────────────────────────────────────┐
 │                    FastAPI Backend                          │
 ├─────────────────────────────────────────────────────────────┤
